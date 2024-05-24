@@ -6,18 +6,15 @@ from torch.nn.functional import log_softmax, pad
 import math
 import copy
 import time
-from torchtext.optim.lr_scheduler import to_map_style_dataset
+from torch.optim.lr_scheduler import LambdaLR
 import pandas as pd
-import altair as alt
 from torchtext.data.functional import to_map_style_dataset
 from torch.utils.data import DataLoader
 from torchtext.vocab import build_vocab_from_iterator
 import torchtext.datasets as datasets
 import spacy
-import GPUtil
 import warnings
 from torch.utils.data.distributed import DistributedSampler
-import roch.distributed as dist
 import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -237,6 +234,7 @@ class PositionwiseForward(nn.Module):
     "Implements FFN equation"
 
     def __init__(self, d_model, d_ff, dropout=0.1):
+        super(PositionwiseForward, self).__init__()
         self.w_1 = nn.Linear(d_model, d_ff)
         self.w_2 = nn.Linear(d_ff, d_model)
         self.dropout = nn.Dropout(dropout)
@@ -252,7 +250,7 @@ class PositionalEncoding(nn.Module):
 
     def __init__(self, d_model, dropout, max_len=5000):
         super(PositionalEncoding, self).__init__()
-        self.droput = nn.Dropout(p=dropout)
+        self.dropout = nn.Dropout(p=dropout)
 
         # COmpute the positional encodings once in log space
         pe = torch.zeros(max_len, d_model)
@@ -287,6 +285,38 @@ def make_model(
     )
 
     for p in model.parameters():
-        if p.dim > 1:
+        if p.ndim > 1:
             nn.init.xavier_normal_(p)
     return model
+
+
+def inference_test():
+    test_model = make_model(11, 11, 2)
+    test_model.eval()
+    src = torch.LongTensor([[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]])
+    src_mask = torch.ones(1, 1, 10)
+
+    memory = test_model.encode(src, src_mask)
+    ys = torch.zeros(1, 1).type_as(src)
+
+    for i in range(9):
+        out = test_model.decode(
+            memory, src_mask, ys, subsequent_mask(ys.size(1)).type_as(src.data)
+        )
+        prob = test_model.generator(out[:, -1])
+        _, next_word = torch.max(prob, dim=-1)
+        next_word = next_word.data[0]
+        ys = torch.cat(
+            [ys, torch.empty(1, 1).type_as(src.data).fill_(next_word)], dim=1
+        )
+
+    print("Example Untrained Model Prediction:", ys)
+
+
+def run_tests():
+    for _ in range(10):
+        inference_test()
+
+
+if __name__ == "__main__":
+    run_tests()
