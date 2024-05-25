@@ -370,8 +370,6 @@ class Generator(nn.Module):
 
     def forward(self, x):
         return log_softmax(self.proj(x), dim=-1)
-
-
 ```
 
 ## Assembling the Transformer
