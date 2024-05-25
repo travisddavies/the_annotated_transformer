@@ -316,3 +316,46 @@ class PositionalEncoding(nn.Module):
         x = x + self.pe[:, :x.size(1)].requires_grad_(False)
         return self.dropout(x)
 ```
+
+## Embedding Block
+Now we understand this fundamental aspect of the embedding layer, we can show the
+embedding layer, which is the same as any other embedding layer, except we also multiply it
+by $\sqrt{d_{model}}$. The code block can be seen below.
+
+```python
+class Embeddings(nn.Module):
+    def __init__(self, d_model, vocab):
+        super(Embeddings, self).__init__()
+        self.lut = nn.Embedding(vocab, d_model)
+        self.d_model = d_model
+
+    def forward(self, x):
+        return self.lut(x) * math.sqrt(self.d_model)
+```
+
+## Assembling the Transformer
+We can now finally assemble all the lego pieces with the following codeblock. You should be
+able to understand every aspect to the modules included now!
+
+```python
+def make_model(
+    src_vocab, tgt_vocab, N=6, d_model=512, d_ff=2048, h=8, dropout=0.1
+):
+    "Helper: Construct a model from hyperparameters"
+    c = copy.deepcopy
+    attn = MultiHeadedAttention(h, d_model)
+    ff = PositionwiseForward(d_model, d_ff, dropout)
+    position = PositionalEncoding(d_model, dropout)
+    model = EncoderDecoder(
+        Encoder(EncoderLayer(d_model, c(attn), c(ff), dropout), N),
+        Decoder(DecoderLayer(d_model, c(attn), c(attn), c(ff), dropout), N),
+        nn.Sequential(Embeddings(d_model, src_vocab), c(position)),
+        nn.Sequential(Embeddings(d_model, tgt_vocab), c(position)),
+        Generator(d_model, tgt_vocab),
+    )
+
+    for p in model.parameters():
+        if p.ndim > 1:
+            nn.init.xavier_normal_(p)
+    return model
+```
