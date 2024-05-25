@@ -354,6 +354,26 @@ class Embeddings(nn.Module):
         return self.lut(x) * math.sqrt(self.d_model)
 ```
 
+## Final Layer
+For the final layer, it is simply just a fully-connected layer with a softmax activation function.
+The dimensions of the output is the size of the total vocab size, meaning that it is providing
+the probability of the **next word** across the entire vocabulary. And that is how it performs
+written language!
+
+```python
+class Generator(nn.Module):
+    "Define standard linear + softmax generation step"
+
+    def __init__(self, d_model, vocab):
+        super(Generator, self).__init__()
+        self.proj = nn.Linear(d_model, vocab)
+
+    def forward(self, x):
+        return log_softmax(self.proj(x), dim=-1)
+
+
+```
+
 ## Assembling the Transformer
 We can now finally assemble all the lego pieces with the following codeblock. You should be
 able to understand every aspect to the modules included now!
