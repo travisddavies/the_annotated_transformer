@@ -218,6 +218,11 @@ def subsequent_mask(size):
     return subsequent_mask == 0
 ```
 
+A visualisation of the result can be seen below.
+
+
+![A diagram of the attention layer](assets/masking.png)
+
 ## Feedforward Layer
 The feedforward layer is just a simple fully connected layer. I don't think any
 explanation is required for this, so the code block is provided below.
