@@ -248,3 +248,19 @@ class DecoderLayer(nn.Module):
         x = self.sublayer[1](x, lambda x: self.self_attn(x, m, m, src_mask))
         return self.sublayer[2](x, self.feed_forward)
 ```
+
+## Positional Encoding
+Now one issue with this architecture is that it doesn't naturally consider the sequential
+nature of language and thus as now concept of where each word embedding is positioned.
+As a result, we need to add that information into each embedding.
+
+We want to do this in a way where we can include this information without having to increase
+the dimensions or lose the information when the dimensions of the embeddings change. One great
+way to do this is by using sine and cosine functions. Since their positions at a certain
+position are complete opposites, we can capture every single position with no clashes. The way
+we do this is by applying every even position with the sine function, and every odd position
+with the cosine function. The formulas for how this works are shown below.
+
+$$
+PE_{(pos,2i)} = \sin(pos/10000^{2i/d_{model}})
+$$
