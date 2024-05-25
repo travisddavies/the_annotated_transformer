@@ -202,6 +202,28 @@ To visualise what is happening in total, you can look at the diagram below
 
 ![A diagram of the attention layer](assets/attention.png)
 
+## Feedforward Layer
+The feedforward layer is just a simple fully connected layer. I don't think any
+explanation is required for this, so the code block is provided below.
+
+
+```python
+class PositionwiseForward(nn.Module):
+    "Implements FFN equation"
+
+    def __init__(self, d_model, d_ff, dropout=0.1):
+        super(PositionwiseForward, self).__init__()
+        self.w_1 = nn.Linear(d_model, d_ff)
+        self.w_2 = nn.Linear(d_ff, d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x):
+        x = self.w_1(x).relu()
+        x = self.dropout(x)
+        return self.w_2(x)
+```
+
+
 ## Decoder Block
 Now let's discuss the decoder block. This is similar to the encoder block, however there
 are some important differences. As can be seen in the diagram below, each decoder block is
@@ -268,3 +290,29 @@ $$
 $$
 PE_{(pos,2i+1)} = \cos(pos/10000^{2i/d_{model}})
 $$
+
+Additionally, we can add dropout to this layer. The codeblock for this layer can be seen below.
+
+```python
+class PositionalEncoding(nn.Module):
+    "Implement the PE function."
+
+    def __init__(self, d_model, dropout, max_len=5000):
+        super(PositionalEncoding, self).__init__()
+        self.droput = nn.Dropout(p=dropout)
+
+        # COmpute the positional encodings once in log space
+        pe = torch.zeros(max_len, d_model)
+        position = torch.arange(0, max_len).unsqueeze(1)
+        div_term = torch.exp(
+            torch.arange(0, d_model, 2) * -(math.log(1000.0) / d_model)
+        )
+        pe[:, 0::2] = torch.sin(position * div_term)
+        pe[:, 1::2] = torch.cos(position * div_term)
+        pe = pe.unsqueeze(0)
+        self.register_buffer("pe", pe)
+
+    def forward(self, x):
+        x = x + self.pe[:, :x.size(1)].requires_grad_(False)
+        return self.dropout(x)
+```
