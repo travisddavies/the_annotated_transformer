@@ -202,6 +202,22 @@ To visualise what is happening in total, you can look at the diagram below
 
 ![A diagram of the attention layer](assets/attention.png)
 
+## Masking
+It was mentioned that in the attention layer we apply masking to ensure that each word
+only learns relationships from the word that came before it. The function that we use to
+achieve this is shown below. We should essentially achieve a diagonal matrix, with the
+right-hand side being the masking area.
+
+```python
+def subsequent_mask(size):
+    "Mask out subsequent positions"
+    attn_shape = (1, size, size)
+    subsequent_mask = torch.triu(torch.ones(attn_shape), diagonal=1).type(
+        torch.uint8
+    )
+    return subsequent_mask == 0
+```
+
 ## Feedforward Layer
 The feedforward layer is just a simple fully connected layer. I don't think any
 explanation is required for this, so the code block is provided below.
