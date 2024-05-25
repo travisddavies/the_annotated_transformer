@@ -132,3 +132,15 @@ def run_epoch(
         tokens = 0
 
     return total_loss / total_tokens, train_state
+
+
+def rate(step, model_size, factor, warmup):
+    """
+    We have to default the step to 1 for LambdaLR function to avoid zero
+    trasing to negative lower.
+    """
+    if step == 0:
+        step = 1
+    return factor * (
+        model_size ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5))
+    )
